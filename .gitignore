@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.pyc
+*.pyd
+*.pyo
+
+# Environments
+venv/
+.venv/
+.env/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Simulation / CHARMM / MD binary outputs
+*.dcd
+*.pdb
+*.psf
+*.str
+*.log
+*.out
+*.tmp
+
+# Ignore PyCharm settings
+.idea/
+
+# Data files (optional)
+*.npy
+*.npz
+*.csv
+*.h5
