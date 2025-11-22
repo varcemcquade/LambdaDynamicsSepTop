@@ -13,7 +13,6 @@ dist/
 
 # Simulation / CHARMM / MD binary outputs
 *.dcd
-*.pdb
 *.log
 *.out
 *.tmp
