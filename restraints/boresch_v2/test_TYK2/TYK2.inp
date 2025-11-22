@@ -11,12 +11,13 @@ set builddir = prep
 ! set box = BOXSUB
 set temp = 298.15
 set ligseg = HETA
-set resnum = 11
+set resnum = 1
 
 ! perturbation variables
 set nsites = 1 
 set nsubs1 = 3
 set nblocks = 3
+set nligands = 3
 
 bomblev -2
 
@@ -297,249 +298,93 @@ END
 !! Boresch Restraints
 !!
 
-stream @builddir/boresch_variables1.str
+set lig = 1
+
+label reiterate_ligand
+
+calc ligblock = @lig + 1
+
+stream @builddir/boresch_variables@{lig}.str
 
 MMFP
 
 GEO sphere RCM distance -
-     harmonic symmetric force -@distancek droff @distancel1p1 block 2 -
-     select atom @ligsegid 1 @l1name end -
-     select atom @protsegid @p1resnum @p1name end
+   harmonic symmetric force -@distancek droff @distancel1p1 block @ligblock -
+   select atom @ligsegid @lig @l1name end -
+   select atom @protsegid @p1resnum @p1name end
 
 GEO sphere RCM angle -
-     harmonic symmetric force -@theta1k tref @theta1 dtoff 0.0 block 2 -
-     select atom @ligsegid 1 @l1name end -
-     select atom @protsegid @p1resnum @p1name end -
-     select atom @protsegid @p2resnum @p2name end
+   harmonic symmetric force -@theta1k tref @theta1 dtoff 0.0 block @ligblock -
+   select atom @ligsegid @lig @l1name end -
+   select atom @protsegid @p1resnum @p1name end -
+   select atom @protsegid @p2resnum @p2name end
 
 GEO sphere RCM angle -
-     harmonic symmetric force -@theta2k tref @theta2 dtoff 0.0 block 2 -
-     select atom @ligsegid 1 @l2name end -
-     select atom @ligsegid 1 @l1name end -
-     select atom @protsegid @p1resnum @p1name end
+   harmonic symmetric force -@theta2k tref @theta2 dtoff 0.0 block @ligblock -
+   select atom @ligsegid @lig @l2name end -
+   select atom @ligsegid @lig @l1name end -
+   select atom @protsegid @p1resnum @p1name end
 
 GEO sphere RCM dihedral -
-     harmonic symmetric force -@phi1k tref @phi1 dtoff 0.0 block 2 -
-     select atom @ligsegid 1 @l1name end -
-     select atom @protsegid @p1resnum @p1name end -
-     select atom @protsegid @p2resnum @p2name end -
-     select atom @protsegid @p3resnum @p3name end
+   harmonic symmetric force -@phi1k tref @phi1 dtoff 0.0 block @ligblock -
+   select atom @ligsegid @lig @l1name end -
+   select atom @protsegid @p1resnum @p1name end -
+   select atom @protsegid @p2resnum @p2name end -
+   select atom @protsegid @p3resnum @p3name end
 
 GEO sphere RCM dihedral -
-     harmonic symmetric force -@phi23k tref @phi2 dtoff 0.0 block 2 -
-     select atom @ligsegid 1 @l2name end -
-     select atom @ligsegid 1 @l1name end -
-     select atom @protsegid @p1resnum @p1name end -
-     select atom @protsegid @p2resnum @p2name end
+   harmonic symmetric force -@phi23k tref @phi2 dtoff 0.0 block @ligblock -
+   select atom @ligsegid @lig @l2name end -
+   select atom @ligsegid @lig @l1name end -
+   select atom @protsegid @p1resnum @p1name end -
+   select atom @protsegid @p2resnum @p2name end
 
 GEO sphere RCM dihedral -
-     harmonic symmetric force -@phi23k tref @phi3 dtoff 0.0 block 2 -
-     select atom @ligsegid 1 @l3name end -
-     select atom @ligsegid 1 @l2name end -
-     select atom @ligsegid 1 @l1name end -
-     select atom @protsegid @p1resnum @p1name end
+   harmonic symmetric force -@phi23k tref @phi3 dtoff 0.0 block @ligblock -
+   select atom @ligsegid @lig @l3name end -
+   select atom @ligsegid @lig @l2name end -
+   select atom @ligsegid @lig @l1name end -
+   select atom @protsegid @p1resnum @p1name end
 
 GEO sphere RCM distance -
-     harmonic symmetric force @distancek droff @distancel1p1 -
-     select atom @ligsegid 1 @l1name end -
-     select atom @protsegid @p1resnum @p1name end
+   harmonic symmetric force @distancek droff @distancel1p1 -
+   select atom @ligsegid @lig @l1name end -
+   select atom @protsegid @p1resnum @p1name end
 
 GEO sphere RCM angle -
-     harmonic symmetric force @theta1k tref @theta1 dtoff 0.0 -
-     select atom @ligsegid 1 @l1name end -
-     select atom @protsegid @p1resnum @p1name end -
-     select atom @protsegid @p2resnum @p2name end
+   harmonic symmetric force @theta1k tref @theta1 dtoff 0.0 -
+   select atom @ligsegid @lig @l1name end -
+   select atom @protsegid @p1resnum @p1name end -
+   select atom @protsegid @p2resnum @p2name end
 
 GEO sphere RCM angle -
-     harmonic symmetric force @theta2k tref @theta2 dtoff 0.0 -
-     select atom @ligsegid 1 @l2name end -
-     select atom @ligsegid 1 @l1name end -
-     select atom @protsegid @p1resnum @p1name end
+   harmonic symmetric force @theta2k tref @theta2 dtoff 0.0 -
+   select atom @ligsegid @lig @l2name end -
+   select atom @ligsegid @lig @l1name end -
+   select atom @protsegid @p1resnum @p1name end
 
 GEO sphere RCM dihedral -
-     harmonic symmetric force @phi1k tref @phi1 dtoff 0.0 -
-     select atom @ligsegid 1 @l1name end -
-     select atom @protsegid @p1resnum @p1name end -
-     select atom @protsegid @p2resnum @p2name end -
-     select atom @protsegid @p3resnum @p3name end
+   harmonic symmetric force @phi1k tref @phi1 dtoff 0.0 -
+   select atom @ligsegid @lig @l1name end -
+   select atom @protsegid @p1resnum @p1name end -
+   select atom @protsegid @p2resnum @p2name end -
+   select atom @protsegid @p3resnum @p3name end
 
 GEO sphere RCM dihedral -
-     harmonic symmetric force @phi23k tref @phi2 dtoff 0.0 -
-     select atom @ligsegid 1 @l2name end -
-     select atom @ligsegid 1 @l1name end -
-     select atom @protsegid @p1resnum @p1name end -
-     select atom @protsegid @p2resnum @p2name end
+   harmonic symmetric force @phi23k tref @phi2 dtoff 0.0 -
+   select atom @ligsegid @lig @l2name end -
+   select atom @ligsegid @lig @l1name end -
+   select atom @protsegid @p1resnum @p1name end -
+   select atom @protsegid @p2resnum @p2name end
 
 GEO sphere RCM dihedral -
-     harmonic symmetric force @phi23k tref @phi3 dtoff 0.0 -
-     select atom @ligsegid 1 @l3name end -
-     select atom @ligsegid 1 @l2name end -
-     select atom @ligsegid 1 @l1name end -
-     select atom @protsegid @p1resnum @p1name end
-
+   harmonic symmetric force @phi23k tref @phi3 dtoff 0.0 -
+   select atom @ligsegid @lig @l3name end -
+   select atom @ligsegid @lig @l2name end -
+   select atom @ligsegid @lig @l1name end -
+   select atom @protsegid @p1resnum @p1name end
 END
 
+incr lig
 
-stream @builddir/boresch_variables2.str
-
-MMFP
-
-GEO sphere RCM distance -
-     harmonic symmetric force -@distancek droff @distancel1p1 block 3 -
-     select atom @ligsegid 2 @l1name end -
-     select atom @protsegid @p1resnum @p1name end
-
-GEO sphere RCM angle -
-     harmonic symmetric force -@theta1k tref @theta1 dtoff 0.0 block 3 -
-     select atom @ligsegid 2 @l1name end -
-     select atom @protsegid @p1resnum @p1name end -
-     select atom @protsegid @p2resnum @p2name end
-
-GEO sphere RCM angle -
-     harmonic symmetric force -@theta2k tref @theta2 dtoff 0.0 block 3 -
-     select atom @ligsegid 2 @l2name end -
-     select atom @ligsegid 2 @l1name end -
-     select atom @protsegid @p1resnum @p1name end
-
-GEO sphere RCM dihedral -
-     harmonic symmetric force -@phi1k tref @phi1 dtoff 0.0 block 3 -
-     select atom @ligsegid 2 @l1name end -
-     select atom @protsegid @p1resnum @p1name end -
-     select atom @protsegid @p2resnum @p2name end -
-     select atom @protsegid @p3resnum @p3name end
-
-GEO sphere RCM dihedral -
-     harmonic symmetric force -@phi23k tref @phi2 dtoff 0.0 block 3 -
-     select atom @ligsegid 2 @l2name end -
-     select atom @ligsegid 2 @l1name end -
-     select atom @protsegid @p1resnum @p1name end -
-     select atom @protsegid @p2resnum @p2name end
-
-GEO sphere RCM dihedral -
-     harmonic symmetric force -@phi23k tref @phi3 dtoff 0.0 block 3 -
-     select atom @ligsegid 2 @l3name end -
-     select atom @ligsegid 2 @l2name end -
-     select atom @ligsegid 2 @l1name end -
-     select atom @protsegid @p1resnum @p1name end
-
-GEO sphere RCM distance -
-     harmonic symmetric force @distancek droff @distancel1p1 -
-     select atom @ligsegid 2 @l1name end -
-     select atom @protsegid @p1resnum @p1name end
-
-GEO sphere RCM angle -
-     harmonic symmetric force @theta1k tref @theta1 dtoff 0.0 -
-     select atom @ligsegid 2 @l1name end -
-     select atom @protsegid @p1resnum @p1name end -
-     select atom @protsegid @p2resnum @p2name end
-
-GEO sphere RCM angle -
-     harmonic symmetric force @theta2k tref @theta2 dtoff 0.0 -
-     select atom @ligsegid 2 @l2name end -
-     select atom @ligsegid 2 @l1name end -
-    select atom @protsegid @p1resnum @p1name end
-
-GEO sphere RCM dihedral -
-     harmonic symmetric force @phi1k tref @phi1 dtoff 0.0 -
-     select atom @ligsegid 2 @l1name end -
-     select atom @protsegid @p1resnum @p1name end -
-     select atom @protsegid @p2resnum @p2name end -
-     select atom @protsegid @p3resnum @p3name end
-
-GEO sphere RCM dihedral -
-     harmonic symmetric force @phi23k tref @phi2 dtoff 0.0 -
-     select atom @ligsegid 2 @l2name end -
-     select atom @ligsegid 2 @l1name end -
-     select atom @protsegid @p1resnum @p1name end -
-     select atom @protsegid @p2resnum @p2name end
-
-GEO sphere RCM dihedral -
-     harmonic symmetric force @phi23k tref @phi3 dtoff 0.0 -
-     select atom @ligsegid 2 @l3name end -
-     select atom @ligsegid 2 @l2name end -
-     select atom @ligsegid 2 @l1name end -
-     select atom @protsegid @p1resnum @p1name end
-
-END
-
-stream @builddir/boresch_variables3.str
-
-MMFP
-
-GEO sphere RCM distance -
-     harmonic symmetric force -@distancek droff @distancel1p1 block 4 -
-     select atom @ligsegid 3 @l1name end -
-     select atom @protsegid @p1resnum @p1name end
-
-GEO sphere RCM angle -
-     harmonic symmetric force -@theta1k tref @theta1 dtoff 0.0 block 4 -
-     select atom @ligsegid 3 @l1name end -
-     select atom @protsegid @p1resnum @p1name end -
-     select atom @protsegid @p2resnum @p2name end
-
-GEO sphere RCM angle -
-     harmonic symmetric force -@theta2k tref @theta2 dtoff 0.0 block 4 -
-     select atom @ligsegid 3 @l2name end -
-     select atom @ligsegid 3 @l1name end -
-     select atom @protsegid @p1resnum @p1name end
-
-GEO sphere RCM dihedral -
-     harmonic symmetric force -@phi1k tref @phi1 dtoff 0.0 block 4 -
-     select atom @ligsegid 3 @l1name end -
-     select atom @protsegid @p1resnum @p1name end -
-     select atom @protsegid @p2resnum @p2name end -
-     select atom @protsegid @p3resnum @p3name end
-
-GEO sphere RCM dihedral -
-     harmonic symmetric force -@phi23k tref @phi2 dtoff 0.0 block 4 -
-     select atom @ligsegid 3 @l2name end -
-     select atom @ligsegid 3 @l1name end -
-     select atom @protsegid @p1resnum @p1name end -
-     select atom @protsegid @p2resnum @p2name end
-
-GEO sphere RCM dihedral -
-     harmonic symmetric force -@phi23k tref @phi3 dtoff 0.0 block 4 -
-     select atom @ligsegid 3 @l3name end -
-     select atom @ligsegid 3 @l2name end -
-     select atom @ligsegid 3 @l1name end -
-     select atom @protsegid @p1resnum @p1name end
-
-GEO sphere RCM distance -
-     harmonic symmetric force @distancek droff @distancel1p1 -
-     select atom @ligsegid 3 @l1name end -
-     select atom @protsegid @p1resnum @p1name end
-
-GEO sphere RCM angle -
-     harmonic symmetric force @theta1k tref @theta1 dtoff 0.0 -
-     select atom @ligsegid 3 @l1name end -
-     select atom @protsegid @p1resnum @p1name end -
-     select atom @protsegid @p2resnum @p2name end
-
-GEO sphere RCM angle -
-     harmonic symmetric force @theta2k tref @theta2 dtoff 0.0 -
-     select atom @ligsegid 3 @l2name end -
-     select atom @ligsegid 3 @l1name end -
-    select atom @protsegid @p1resnum @p1name end
-
-GEO sphere RCM dihedral -
-     harmonic symmetric force @phi1k tref @phi1 dtoff 0.0 -
-     select atom @ligsegid 3 @l1name end -
-     select atom @protsegid @p1resnum @p1name end -
-     select atom @protsegid @p2resnum @p2name end -
-     select atom @protsegid @p3resnum @p3name end
-
-GEO sphere RCM dihedral -
-     harmonic symmetric force @phi23k tref @phi2 dtoff 0.0 -
-     select atom @ligsegid 3 @l2name end -
-     select atom @ligsegid 3 @l1name end -
-     select atom @protsegid @p1resnum @p1name end -
-     select atom @protsegid @p2resnum @p2name end
-
-GEO sphere RCM dihedral -
-     harmonic symmetric force @phi23k tref @phi3 dtoff 0.0 -
-     select atom @ligsegid 3 @l3name end -
-     select atom @ligsegid 3 @l2name end -
-     select atom @ligsegid 3 @l1name end -
-     select atom @protsegid @p1resnum @p1name end
-
-END
+if @lig .le. @nligands goto reiterate_ligand
