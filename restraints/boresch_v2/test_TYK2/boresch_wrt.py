@@ -5,7 +5,7 @@ def return_atom_info(complex_psf, atoms_idx, lig_segid, prot_segid):
      :param complex_psf:
          psf file of complex
      :param atoms_idx:
-         Array of boresch restraint atoms ordered l1, l2, l3, p1, p2, p3
+         Array of boresch restraint atoms ordered l1, l2, l3, p1, p2, p3 - ZERO-BASED
      :param lig_segid, prot_segid:
          Ligand and protein segment IDs
      :returns distance_l1_p1, theta1, theta2, phi1, phi2, phi3
@@ -25,12 +25,13 @@ def return_atom_info(complex_psf, atoms_idx, lig_segid, prot_segid):
     p3resnum = ""
     p3name = ""
 
-    l1 = f"{atoms_idx[0]} {lig_segid}"
-    l2 = f"{atoms_idx[1]} {lig_segid}"
-    l3 = f"{atoms_idx[2]} {lig_segid}"
-    p1 = f"{atoms_idx[3]} {prot_segid}"
-    p2 = f"{atoms_idx[4]} {prot_segid}"
-    p3 = f"{atoms_idx[5]} {prot_segid}"
+    # Convert to 1-based for PSF lookup
+    l1 = f"{atoms_idx[0] + 1} {lig_segid}"
+    l2 = f"{atoms_idx[1] + 1} {lig_segid}"
+    l3 = f"{atoms_idx[2] + 1} {lig_segid}"
+    p1 = f"{atoms_idx[3] + 1} {prot_segid}"
+    p2 = f"{atoms_idx[4] + 1} {prot_segid}"
+    p3 = f"{atoms_idx[5] + 1} {prot_segid}"
 
 
     with open(complex_psf) as file:

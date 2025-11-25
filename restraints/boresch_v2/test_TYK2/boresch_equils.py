@@ -6,19 +6,18 @@ def compute_dist_angle_dih(u, boresch_atoms):
     :param u:
         MDAnalysis universe
     :param boresch_atoms:
-         Array of boresch restraint atoms ordered l1, l2, l3, p1, p2, p3
+         Array of boresch restraint atoms ordered l1, l2, l3, p1, p2, p3 - ZERO-BASED
     :returns dl1p1, theta1, theta2, phi1, phi2, phi3
         Values for distance (l1 to p1), theta1 (l1, p1, p2), theta2 (l2, l1, p1), phi1 (l1, p1, p2, p3),
         phi2 (l2, l1, p1, p2), and phi3 (l3, l2, l1, p1)
     """
 
-    # 1-based indexing ---> 0-based indexing
-    l1 = boresch_atoms[0] - 1
-    l2 = boresch_atoms[1] - 1
-    l3 = boresch_atoms[2] - 1
-    p1 = boresch_atoms[3] - 1
-    p2 = boresch_atoms[4] - 1
-    p3 = boresch_atoms[5] - 1
+    l1 = boresch_atoms[0]
+    l2 = boresch_atoms[1]
+    l3 = boresch_atoms[2]
+    p1 = boresch_atoms[3]
+    p2 = boresch_atoms[4]
+    p3 = boresch_atoms[5]
 
     l1_coords = u.atoms[l1].position
     l2_coords = u.atoms[l2].position

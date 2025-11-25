@@ -12,7 +12,7 @@ def select_ligand_atoms(u, lig_segid):
     :param lig_segid:
         editable segment id of ligand
     :return L1, L2, L3:
-        atom indices of atom selection heuristic
+        atom indices of atom selection heuristic - ZERO-BASED
     """
 
     # Make sure atoms have element attribute for RDKit conversion
@@ -66,4 +66,4 @@ def select_ligand_atoms(u, lig_segid):
         else:
             raise ValueError(f"Ligand center atom has fewer than 2 neighbors. Cannot select L2 and L3.")
 
-    return [l1_global + 1, l2_global + 1, l3_global + 1]
+    return [l1_global, l2_global, l3_global]
