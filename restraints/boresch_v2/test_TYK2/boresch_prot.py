@@ -80,8 +80,7 @@ def select_protein_atoms(u, l1, box_size=84, skip_start=20, skip_end=10, min_len
     if core_atoms.n_atoms == 0:
         return []
 
-    # L1 is 1-based index
-    lig = u.atoms[l1 - 1]
+    lig = u.atoms[l1]
 
     candidates_atoms = core_atoms
 
@@ -101,11 +100,11 @@ def find_triplets(u, protein_atoms, l1, l2, l3):
     :param u:
         MDAnalysis universe, 0-based atom indices
     :param l1, l2, l3:
-        Indices of selected ligand atoms
+        Indices of selected ligand atoms - ZERO-BASED
     :param protein_atoms:
-        List of protein candidates overlapped by all ligands
+        List of protein candidates overlapped by all ligands - ZERO-BASED
     :return restrained_atoms:
-        List of atom indices (1-based) to be used for restraints. Ordered l1, l2, l3, p1, p2, p3
+        List of atom indices to be used for restraints. Ordered l1, l2, l3, p1, p2, p3 - ZERO-BASED
     """
 
     coords = u.atoms.positions.copy() # shape: (n_atoms, 3)
@@ -113,15 +112,15 @@ def find_triplets(u, protein_atoms, l1, l2, l3):
 
     for i, p1 in enumerate(protein_atoms):
         p1_coords = coords[p1, :]
-        l1_coords = coords[l1 - 1, :]
-        l2_coords = coords[l2 - 1, :]
-        l3_coords = coords[l3 - 1, :]
+        l1_coords = coords[l1, :]
+        l2_coords = coords[l2, :]
+        l3_coords = coords[l3, :]
 
         a1 = float(np.degrees(calc_angles(p1_coords, l1_coords, l2_coords, box=u.dimensions)))
         dih1 = float(np.degrees(calc_dihedrals(p1_coords, l1_coords, l2_coords, l3_coords, box=u.dimensions)))
 
         check_a1 = boresch_chk.check_angle(a1)
-        collinear1 = boresch_chk.is_collinear(coords, [p1, l1 - 1, l2 - 1, l3 - 1])
+        collinear1 = boresch_chk.is_collinear(coords, [p1, l1, l2, l3])
 
         if not (check_a1 and not collinear1 and abs(dih1) < MAX_DIHEDRAL):
             continue
@@ -141,7 +140,7 @@ def find_triplets(u, protein_atoms, l1, l2, l3):
             dp1p2 = float(calc_bonds(p1_coords, p2_coords, box=u.dimensions))
 
             check_a2 = boresch_chk.check_angle(a2)
-            collinear2 = boresch_chk.is_collinear(coords, [p2, p1, l1 - 1, l2 - 1])
+            collinear2 = boresch_chk.is_collinear(coords, [p2, p1, l1, l2])
 
             if (check_a2 and not collinear2 and abs(dih2) < MAX_DIHEDRAL
                 and MIN_DISTANCE < dp1p2 < max_distance):
@@ -159,7 +158,7 @@ def find_triplets(u, protein_atoms, l1, l2, l3):
 
                 p3_coords = coords[p3, :]
                 dih3 = float(np.degrees(calc_dihedrals(p3_coords, p2_coords, p1_coords, l1_coords, box=u.dimensions)))
-                collinear3 = boresch_chk.is_collinear(coords, [p3, p2, p1, l1 - 1])
+                collinear3 = boresch_chk.is_collinear(coords, [p3, p2, p1, l1])
 
                 if collinear3 or not (abs(dih3) < MAX_DIHEDRAL):
                     continue
@@ -178,7 +177,7 @@ def find_triplets(u, protein_atoms, l1, l2, l3):
             if p3_candidates:
                 best_idx = int(np.argmax(distance_products))
                 best_p3 = p3_candidates[best_idx]
-                all_triplets.append([p1 + 1, p2 + 1, best_p3 + 1])
+                all_triplets.append([p1, p2, best_p3])
     return all_triplets
 
 
@@ -187,16 +186,15 @@ def conditions_met(u, lig_idx, prot_idx):
     :param u:
         Merged MDAnalysis universe of ref_prot + ligand
     :param lig_idx:
-        Indices of l1, l2, l3 -- 1-based
+        Indices of l1, l2, l3 -- ZERO-BASED
     :param prot_idx:
-        Indices of p1, p2, p3 -- 1-based
+        Indices of p1, p2, p3 -- ZERO-BASED
     :returns bool:
         True if conditions met, False otherwise
     """
 
     coords = u.atoms.positions.copy()
 
-    # 1-based
     l1 = lig_idx[0]
     l2 = lig_idx[1]
     l3 = lig_idx[2]
@@ -204,16 +202,16 @@ def conditions_met(u, lig_idx, prot_idx):
     p2 = prot_idx[1]
     p3 = prot_idx[2]
 
-    l1_coords = coords[l1 - 1, :]
-    l2_coords = coords[l2 - 1, :]
-    l3_coords = coords[l3 - 1, :]
-    p1_coords = coords[p1 - 1, :]
-    p2_coords = coords[p2 - 1, :]
-    p3_coords = coords[p3 - 1, :]
+    l1_coords = coords[l1, :]
+    l2_coords = coords[l2, :]
+    l3_coords = coords[l3, :]
+    p1_coords = coords[p1, :]
+    p2_coords = coords[p2, :]
+    p3_coords = coords[p3, :]
 
     a1 = float(np.degrees(calc_angles(p1_coords, l1_coords, l2_coords, box=u.dimensions)))
     check_a1 = boresch_chk.check_angle(a1)
-    collinear1 = boresch_chk.is_collinear(coords, [p1, l1 - 1, l2 - 1, l3 - 1])
+    collinear1 = boresch_chk.is_collinear(coords, [p1, l1, l2, l3])
     dih1 = float(np.degrees(calc_dihedrals(p1_coords, l1_coords, l2_coords, l3_coords, box=u.dimensions)))
 
     if not (check_a1 and not collinear1 and abs(dih1) < MAX_DIHEDRAL):
@@ -223,7 +221,7 @@ def conditions_met(u, lig_idx, prot_idx):
 
     a2 = float(np.degrees(calc_angles(p2_coords, p1_coords, l1_coords, box=u.dimensions)))
     check_a2 = boresch_chk.check_angle(a2)
-    collinear2 = boresch_chk.is_collinear(coords, [p2, p1, l1 - 1, l2 - 1])
+    collinear2 = boresch_chk.is_collinear(coords, [p2, p1, l1, l2])
     dih2 = float(np.degrees(calc_dihedrals(p2_coords, p1_coords, l1_coords, l2_coords, box=u.dimensions)))
     dp1p2 = float(calc_bonds(p1_coords, p2_coords, box=u.dimensions))
 
@@ -232,7 +230,7 @@ def conditions_met(u, lig_idx, prot_idx):
         return False
 
     dih3 = float(np.degrees(calc_dihedrals(p3_coords, p2_coords, p1_coords, l1_coords, box=u.dimensions)))
-    collinear3 = boresch_chk.is_collinear(coords, [p3, p2, p1, l1 - 1])
+    collinear3 = boresch_chk.is_collinear(coords, [p3, p2, p1, l1])
 
     if collinear3 or not (abs(dih3) < MAX_DIHEDRAL):
         return False

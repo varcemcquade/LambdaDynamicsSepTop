@@ -54,14 +54,13 @@ for i, complex in enumerate(complexes[1:], start=1):
     candidate_triplets = local_candidates
     print(f"All triplets evaluated against {complex}. Remaining: {len(candidate_triplets)}")
 
-if candidate_triplets:
-    prots_final = candidate_triplets[0]
-else:
+if not candidate_triplets:
     print("No triplets found across all complexes.")
-
-for i, complex in enumerate(complexes):
-    psf = f"{complex}.psf"
-    boresch_atoms = lig_idx[i]+prots_final
-    u = universes[i]
-    equils = boresch_equils.compute_dist_angle_dih(u, boresch_atoms)
-    boresch_wrt.write_boresch_variables(psf, boresch_atoms, equils, lig_segid, prot_segid, i + 1)
+else:
+    prots_final = candidate_triplets[0]
+    for i, complex in enumerate(complexes):
+        psf = f"{complex}.psf"
+        boresch_atoms = lig_idx[i] + prots_final
+        u = universes[i]
+        equils = boresch_equils.compute_dist_angle_dih(u, boresch_atoms)
+        boresch_wrt.write_boresch_variables(psf, boresch_atoms, equils, lig_segid, prot_segid, i + 1)

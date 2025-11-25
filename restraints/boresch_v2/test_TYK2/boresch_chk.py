@@ -16,7 +16,7 @@ def check_angle(angle):
         return False
     return True
 
-def is_collinear(positions, atoms, threshold=0.9):
+def is_collinear(positions, atoms, threshold=0.91):
     """ Report whether any sequential vectors in a sequence of atoms are collinear
     :param positions:
         n_atoms x 3 simtk.unit.Quantity -- reference positions to use for imposing restraints (units of length)
