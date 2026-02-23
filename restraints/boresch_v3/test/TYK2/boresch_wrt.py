@@ -5,12 +5,11 @@ def return_atom_info(complex_psf, atoms_idx, lig_segid, prot_segid):
      :param complex_psf:
          psf file of complex
      :param atoms_idx:
-         Array of boresch restraint atoms ordered l1, l2, l3, p1, p2, p3
+         Array of 0-based boresch restraint atom indices ordered l1, l2, l3, p1, p2, p3
      :param lig_segid, prot_segid:
          Ligand and protein segment IDs
-     :returns distance_l1_p1, theta1, theta2, phi1, phi2, phi3
-         Values for distance (l1 to p1), theta1 (l1, p1, p2), theta2 (l2, l1, p1), phi1 (l1, p1, p2, p3),
-         phi2 (l2, l1, p1, p2), and phi3 (l3, l2, l1, p1)
+     :returns atom_info:
+         List of atom name/resid/resnum info for .str file
      """
     l1name = ""
     l2name = ""
@@ -25,12 +24,13 @@ def return_atom_info(complex_psf, atoms_idx, lig_segid, prot_segid):
     p3resnum = ""
     p3name = ""
 
-    l1 = f"{atoms_idx[0]} {lig_segid}"
-    l2 = f"{atoms_idx[1]} {lig_segid}"
-    l3 = f"{atoms_idx[2]} {lig_segid}"
-    p1 = f"{atoms_idx[3]} {prot_segid}"
-    p2 = f"{atoms_idx[4]} {prot_segid}"
-    p3 = f"{atoms_idx[5]} {prot_segid}"
+    # Convert 0-based to 1-based for PSF file matching
+    l1 = f"{atoms_idx[0] + 1} {lig_segid}"
+    l2 = f"{atoms_idx[1] + 1} {lig_segid}"
+    l3 = f"{atoms_idx[2] + 1} {lig_segid}"
+    p1 = f"{atoms_idx[3] + 1} {prot_segid}"
+    p2 = f"{atoms_idx[4] + 1} {prot_segid}"
+    p3 = f"{atoms_idx[5] + 1} {prot_segid}"
 
 
     with open(complex_psf) as file:
@@ -68,7 +68,7 @@ def write_boresch_variables(complex_psf, atoms_idx, equils, lig_segid, prot_segi
      :param complex_psf:
          psf file of complex
      :param atoms_idx:
-         Array of boresch restraint atoms ordered l1, l2, l3, p1, p2, p3
+         Array of 0-based boresch restraint atom indices ordered l1, l2, l3, p1, p2, p3
      :param equils:
          Equilibrium conditions of boresch restraint atoms
      :param lig_segid, prot_segid:

@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-def calculate_fpls(data_list: list[list[list[int]]]) -> list[list[float]]:
+def CalculateFPLs(data_list: list[list[list[int]]]) -> list[list[float]]:
     cutoff = 0.95
     frames = len(data_list[0])
     fpl_list = []
@@ -18,7 +18,7 @@ def calculate_fpls(data_list: list[list[list[int]]]) -> list[list[float]]:
 
     return fpl_list
 
-def plot_lambdas(filename: str):
+def PlotLambdaTrajectory(filename: str):
     lambdas = np.loadtxt(filename)
 
     fig, ax = plt.subplots(figsize=(12, 6))
@@ -37,19 +37,35 @@ def plot_lambdas(filename: str):
     plt.show()
     #plt.savefig('lambda_trajectory_a0.01_rep4.png', dpi=150)
 
+def PlotLambdasTwoDimensional(filename: str):
+    lambdas = np.loadtxt(filename)
+    fig, ax = plt.subplots()
+    ax.plot(lambdas[:, 0], lambdas[:, 1])
+    #ax.plot(lambdas[:, 1], lambdas[:, 2])
+    #ax.plot(lambdas[:, 2], lambdas[:, 0])
+    plt.show()
+
+
+for folder in ["strongK_Lambdas210", "strongK_intralig_Lambdas210"]:
+    data_list = [np.loadtxt(f"{folder}/Lambda1.dat"),
+                 np.loadtxt(f"{folder}/Lambda2.dat"),
+                 np.loadtxt(f"{folder}/Lambda3.dat"),
+                 np.loadtxt(f"{folder}/Lambda4.dat"),
+                 np.loadtxt(f"{folder}/Lambda5.dat")]
+    print(f"test: {folder}")
+    print(CalculateFPLs(data_list))
+
+
+
 
 """
-for a in ["0.005", "0.007", "0.012", "0.017"]:
-    folder_name = f"TYK2_complex_run500_Lambdas_{a}"
-    data_list = [np.loadtxt(f"{folder_name}/Lambda1.dat"),
-                 np.loadtxt(f"{folder_name}/Lambda2.dat"),
-                 np.loadtxt(f"{folder_name}/Lambda3.dat"),
-                 np.loadtxt(f"{folder_name}/Lambda4.dat"),
-                 np.loadtxt(f"{folder_name}/Lambda5.dat")]
-    print(f"alpha value: {a}")
-    print(calculate_fpls(data_list))
+data_list = [np.loadtxt("Lambda1.dat"),
+             np.loadtxt("Lambda2.dat"),
+             np.loadtxt("Lambda4.dat"),
+             np.loadtxt("Lambda4.dat"),
+             np.loadtxt("Lambda5.dat")]
+
+print(CalculateFPLs(data_list))
+#PlotLambdaTrajectory("Lambda1.dat")
+#PlotLambdasTwoDimensional("Lambda4.dat")
 """
-
-
-
-plot_lambdas("TYK2_complex_run500_Lambdas_0.017/Lambda3.dat")

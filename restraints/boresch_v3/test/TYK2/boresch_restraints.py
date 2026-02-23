@@ -7,8 +7,8 @@ import MDAnalysis as mda
 # Define System and File Variables
 file = "complexes.txt"
 complexes = []
-lig_idx = []                        # List of lists of l1, l2, l3
-prots_final = []                    # p1, p2, p3 for all complexes
+lig_idx = []                        # List of lists of [l1, l2, l3] (0-based)
+prots_final = []                    # [p1, p2, p3] for all complexes (0-based)
 
 lig_segid = "HETA"
 prot_segid = "PROA"
@@ -51,6 +51,6 @@ else:
 for i, complex in enumerate(complexes):
     psf = complex + ".psf"
     pdb = complex + ".pdb"
-    boresch_atoms = lig_idx[i]+prots_final
+    boresch_atoms = lig_idx[i] + prots_final  # all 0-based
     equils = boresch_equils.compute_dist_angle_dih(psf, pdb, boresch_atoms, box_size)
-    boresch_wrt.write_boresch_variables(psf, boresch_atoms, equils, lig_segid, prot_segid, i+1)
+    boresch_wrt.write_boresch_variables(psf, boresch_atoms, equils, lig_segid, prot_segid, i + 1)

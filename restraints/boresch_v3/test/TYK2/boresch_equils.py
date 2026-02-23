@@ -9,19 +9,19 @@ def compute_dist_angle_dih(complex_psf, complex_coords, boresch_atoms, box_size=
     :param complex_coords:
         Coordinates of complex atoms
     :param boresch_atoms:
-         Array of boresch restraint atoms ordered l1, l2, l3, p1, p2, p3
+         Array of 0-based boresch restraint atom indices ordered l1, l2, l3, p1, p2, p3
     :returns dl1p1, theta1, theta2, phi1, phi2, phi3
         Values for distance (l1 to p1), theta1 (l1, p1, p2), theta2 (l2, l1, p1), phi1 (l1, p1, p2, p3),
         phi2 (l2, l1, p1, p2), and phi3 (l3, l2, l1, p1)
     """
 
-    # 1-based indexing ---> 0-based indexing
-    l1 = boresch_atoms[0] - 1
-    l2 = boresch_atoms[1] - 1
-    l3 = boresch_atoms[2] - 1
-    p1 = boresch_atoms[3] - 1
-    p2 = boresch_atoms[4] - 1
-    p3 = boresch_atoms[5] - 1
+    # All indices are 0-based
+    l1 = boresch_atoms[0]
+    l2 = boresch_atoms[1]
+    l3 = boresch_atoms[2]
+    p1 = boresch_atoms[3]
+    p2 = boresch_atoms[4]
+    p3 = boresch_atoms[5]
 
     u = mda.Universe(complex_psf, complex_coords)
     u.dimensions = [box_size, box_size, box_size, 90, 90, 90]
@@ -44,4 +44,3 @@ def compute_dist_angle_dih(complex_psf, complex_coords, boresch_atoms, box_size=
 
 def dist(a, b, box):
     return float(distance_array(a.reshape(1,3), b.reshape(1,3), box=box)[0,0])
-

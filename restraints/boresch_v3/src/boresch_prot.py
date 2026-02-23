@@ -17,7 +17,7 @@ def select_protein_atoms(complex_psf, complex_coords, l1, box_size=84, skip_star
         :param complex_coords:
             Coordinates of complex atoms
         :param l1:
-            Center of longest shortest path within ligand, returned by select_ligand_atoms (L1)
+            0-based index of center of longest shortest path within ligand (L1)
         :param skip_start, skip_end:
             Length of protein chain start and end trim
         :param min_len_H, min_len_E:
@@ -80,8 +80,8 @@ def select_protein_atoms(complex_psf, complex_coords, l1, box_size=84, skip_star
     if core_atoms.n_atoms == 0:
         return core_atoms
 
-    # L1 is 1-based index
-    lig = u.atoms[l1 - 1]
+    # l1 is 0-based
+    lig = u.atoms[l1]
 
     candidates_atoms = core_atoms
 
@@ -105,30 +105,29 @@ def find_triplets(complex_psf, complex_coords, protein_atoms, l1, l2, l3, box_si
     :param complex_coords:
         Coordinates of complex atoms
     :param l1, l2, l3:
-        Indices of selected ligand atoms
+        0-based indices of selected ligand atoms
     :param protein_atoms:
-        List of protein candidates overlapped by all ligands
+        List of 0-based protein candidate indices
     :return restrained_atoms:
-        List of atom indices (1-based) to be used for restraints. Ordered l1, l2, l3, p1, p2, p3
+        List of 0-based atom index triplets [p1, p2, p3]
     """
 
     u = mda.Universe(complex_psf, complex_coords)
     u.dimensions = [box_size, box_size, box_size, 90, 90, 90]
     coords = u.atoms.positions.copy() # shape: (n_atoms, 3)
-    protein_list_length = len(protein_atoms)
     all_triplets = []
 
     for i, p1 in enumerate(protein_atoms):
         p1_coords = coords[p1, :]
-        l1_coords = coords[l1 - 1, :]
-        l2_coords = coords[l2 - 1, :]
-        l3_coords = coords[l3 - 1, :]
+        l1_coords = coords[l1, :]
+        l2_coords = coords[l2, :]
+        l3_coords = coords[l3, :]
 
         a1 = np.degrees(calc_angles(p1_coords, l1_coords, l2_coords))
         dih1 = np.degrees(calc_dihedrals(p1_coords, l1_coords, l2_coords, l3_coords))
 
         check_a1 = boresch_chk.check_angle(a1)
-        collinear1 = boresch_chk.is_collinear(coords, [p1, l1 - 1, l2 - 1, l3 - 1])
+        collinear1 = boresch_chk.is_collinear(coords, [p1, l1, l2, l3])
 
         if not (check_a1 and not collinear1 and abs(dih1) < 150):
             continue
@@ -149,7 +148,7 @@ def find_triplets(complex_psf, complex_coords, protein_atoms, l1, l2, l3, box_si
             dp1p2 = dist(p1_coords, p2_coords, u.dimensions)
 
             check_a2 = boresch_chk.check_angle(a2)
-            collinear2 = boresch_chk.is_collinear(coords, [p2, p1, l1 - 1, l2 - 1])
+            collinear2 = boresch_chk.is_collinear(coords, [p2, p1, l1, l2])
 
             if (check_a2 and not collinear2 and abs(dih2) < 150 and min_distance < dp1p2 < max_distance):
                     valid_p2s.append(p2)
@@ -166,7 +165,7 @@ def find_triplets(complex_psf, complex_coords, protein_atoms, l1, l2, l3, box_si
 
                 p3_coords = coords[p3, :]
                 dih3 = np.degrees(calc_dihedrals(p3_coords, p2_coords, p1_coords, l1_coords))
-                collinear3 = boresch_chk.is_collinear(coords, [p3, p2, p1, l1 - 1])
+                collinear3 = boresch_chk.is_collinear(coords, [p3, p2, p1, l1])
 
                 if collinear3 or not (abs(dih3) < 150):
                     continue
@@ -185,7 +184,7 @@ def find_triplets(complex_psf, complex_coords, protein_atoms, l1, l2, l3, box_si
             if p3_candidates:
                 best_idx = int(np.argmax(distance_products))
                 best_p3 = p3_candidates[best_idx]
-                all_triplets.append([p1 + 1, p2 + 1, best_p3 + 1])
+                all_triplets.append([p1, p2, best_p3])  # 0-based
     return all_triplets
 
 def conditions_met(u, lig_idx, prot_idx):
@@ -193,21 +192,21 @@ def conditions_met(u, lig_idx, prot_idx):
     :param u:
         MDAnalysis universe of current protein-ligand system
     :param lig_idx:
-        Indices of l1, l2, l3 -- 1-based
+        0-based indices of l1, l2, l3
     :param prot_idx:
-        Indices of p1, p2, p3 -- 1-based
+        0-based indices of p1, p2, p3
     :returns bool:
         True if conditions met, False otherwise
     """
 
     coords = np.array(u.atoms.positions.copy())
 
-    l1 = lig_idx[0] - 1
-    l2 = lig_idx[1] - 1
-    l3 = lig_idx[2] - 1
-    p1 = prot_idx[0] - 1
-    p2 = prot_idx[1] - 1
-    p3 = prot_idx[2] - 1
+    l1 = lig_idx[0]
+    l2 = lig_idx[1]
+    l3 = lig_idx[2]
+    p1 = prot_idx[0]
+    p2 = prot_idx[1]
+    p3 = prot_idx[2]
 
     l1_coords = coords[l1, :]
     l2_coords = coords[l2, :]

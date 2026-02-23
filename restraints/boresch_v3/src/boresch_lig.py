@@ -16,13 +16,12 @@ def select_ligand_atoms(complex_psf, complex_dcd, lig_segid):
     :param lig_segid:
         editable segment id of ligand
 
-    :return L1, L2, L3:
-        atom indices of atom selection heuristic
+    :return [l1, l2, l3]:
+        0-based atom indices of atom selection heuristic
     """
 
     ligand_list = []
 
-    # 0-based indexing starts
     u = mda.Universe(complex_psf, complex_dcd)
 
     # Make sure atoms have element attribute for RDKit conversion
@@ -63,7 +62,7 @@ def select_ligand_atoms(complex_psf, complex_dcd, lig_segid):
         # there might be multiple longest path, choose first one
         center = longest_paths[0][int(len(longest_paths[0]) / 2)]
 
-    # Collect L1
+    # Collect L1 (0-based global index)
     ligand_list.append(inv_local[center])
 
     aromatic_atoms = ligand.select_atoms("smarts a")
@@ -84,10 +83,7 @@ def select_ligand_atoms(complex_psf, complex_dcd, lig_segid):
     if len(ligand_list) > 3:
         ligand_list = ligand_list[:3]
 
-    # 0-based indexing stops
-    for i in range(len(ligand_list)):
-        ligand_list[i] += 1
-
+    # All indices are 0-based throughout
     l1 = ligand_list[0]
     l2 = ligand_list[1]
     l3 = ligand_list[2]
