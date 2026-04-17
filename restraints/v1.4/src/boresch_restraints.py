@@ -13,7 +13,6 @@ Single protein PSF/PDB + per-ligand MOL2/PDB.  No per-ligand complex files.
 
 Author: Valentino Arce-McQuade
 """
-
 import os
 import sys
 import numpy as np
