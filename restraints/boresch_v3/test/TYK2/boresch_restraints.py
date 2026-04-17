@@ -20,15 +20,18 @@ for line in fp:
     complexes.append(line.rstrip())
 fp.close()
 
+# Reference system: use graph-based heuristic for ligand atom selection
 ref_psf = complexes[0]+".psf"
 ref_pdb = complexes[0]+".pdb"
-lig_idx.append(boresch_lig.select_ligand_atoms(ref_psf, ref_pdb, lig_segid))
-ref_prot_candidates = boresch_prot.select_protein_atoms(ref_psf, ref_pdb, lig_idx[0][0], box_size)
-prot_triplets_ref = boresch_prot.find_triplets(ref_psf, ref_pdb, ref_prot_candidates, lig_idx[0][0], lig_idx[0][1], lig_idx[0][2], box_size)
-candidate_triplets = prot_triplets_ref.copy()
-final_triplets = []
+ref_lig = boresch_lig.select_ligand_atoms(ref_psf, ref_pdb, lig_segid)
+lig_idx.append(ref_lig)
 
-for i, complex in enumerate(complexes[1:], start = 1):
+ref_prot_candidates = boresch_prot.select_protein_atoms(ref_psf, ref_pdb, ref_lig[0], box_size)
+prot_triplets_ref = boresch_prot.find_triplets(ref_psf, ref_pdb, ref_prot_candidates, ref_lig[0], ref_lig[1], ref_lig[2], box_size)
+candidate_triplets = prot_triplets_ref.copy()
+
+# Each system selects its own ligand atoms independently
+for i, complex in enumerate(complexes[1:], start=1):
     psf = complex+".psf"
     pdb = complex+".pdb"
     lig_atoms = boresch_lig.select_ligand_atoms(psf, pdb, lig_segid)
