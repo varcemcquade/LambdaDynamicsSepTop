@@ -47,7 +47,7 @@ for path in (PROTEIN_PSF, PROTEIN_PDB):
         sys.exit(f"ERROR: required file not found: {path}")
 
 prot_u = mda.Universe(PROTEIN_PSF, PROTEIN_PDB)
-print(f"Loaded protein: {prot_u.n_atoms} atoms")
+print(f"Loaded protein: {prot_u.atoms.n_atoms} atoms")
 
 def _load_ligand(name):
     """
@@ -65,14 +65,14 @@ def _load_ligand(name):
         u = mda.Universe(pdb)
     else:
         sys.exit(f"ERROR: no .mol2 or .pdb found for ligand '{name}'.")
-    u.atoms.segids = np.full(u.n_atoms, LIG_SEGID)
+    u.segments.segids = np.full(u.segments.n_segments, LIG_SEGID)
     return u
 
 def _build_complex(lig_u):
     """Merge protein and ligand universes (protein first) and set periodic box."""
-    cx = mda.Merge(prot_u.atoms, lig_u.atoms)
-    cx.dimensions = [BOX_SIZE, BOX_SIZE, BOX_SIZE, 90, 90, 90]
-    return cx
+    complex = mda.Merge(prot_u.select_atoms(f"not segid {LIG_SEGID} and not (resname SOL WAT TIP3 TIP3P HOH) and not (resname SOD CLA POT)"), lig_u.atoms)
+    complex.dimensions = [BOX_SIZE, BOX_SIZE, BOX_SIZE, 90, 90, 90]
+    return complex
 
 
 def _triplet_to_ids(complex_u, triplet):
