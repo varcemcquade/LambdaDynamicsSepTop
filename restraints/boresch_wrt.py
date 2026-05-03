@@ -52,15 +52,16 @@ def return_atom_info(psf, lig_names, prot_atoms_idx, prot_segid):
 
     return atom_info
 
-def write_boresch_variables(psf, lig_names, prot_atoms_idx, equils, lig_segid, prot_segid, n):
+def write_boresch_variables(psf, lig_names, prot_atoms_idx, equils, lig_segid, prot_segid, n, strong=True):
     """ Write boresch_variables{n}.str
-     :param psf:            Protein (or complex) PSF file.
-     :param lig_names:      Tuple (l1_name, l2_name, l3_name).
+     :param psf: Protein (or complex) PSF file.
+     :param lig_names: Tuple (l1_name, l2_name, l3_name).
      :param prot_atoms_idx: 1-based indices [p1, p2, p3] for PSF lookup.
-     :param equils:         Equilibrium values (d, thetaA, thetaB, phiA, phiB, phiC).
-     :param lig_segid:      Ligand segment ID.
-     :param prot_segid:     Protein segment ID.
-     :param n:              Ligand number (used in output filename).
+     :param equils: Equilibrium values (d, thetaA, thetaB, phiA, phiB, phiC).
+     :param lig_segid: Ligand segment ID.
+     :param prot_segid: Protein segment ID.
+     :param n: Ligand number (used in output filename).
+     :param strong: If True, use 5x standard force constants; otherwise use 1x.
      """
     d = equils[0] # L1-P1, angstroms
     thetaA = equils[1] # L1-P1-P2, degrees
@@ -75,6 +76,14 @@ def write_boresch_variables(psf, lig_names, prot_atoms_idx, equils, lig_segid, p
     phiAk = (d * np.sin(np.deg2rad(thetaA)))**2 # kcal/mol*rad**2
     phiBk = 20.0 # kcal/mol*rad**2
     phiCk = 20.0  # kcal/mol*rad**2
+
+    if strong:
+        dk *= 5.0
+        thetaAk *= 5.0
+        thetaBk *= 5.0
+        phiAk *= 5.0
+        phiBk *= 5.0
+        phiCk *= 5.0
 
     atom_info = return_atom_info(psf, lig_names, prot_atoms_idx, prot_segid)
 

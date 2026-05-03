@@ -14,7 +14,6 @@ def check_angle(angle):
     :return:
         Boolean. True is valid, False is invalid.
     """
-
     u_low = 0.5 * force_const * (np.pi * (angle - 0.0) / 180.0) ** 2
     u_high = 0.5 * force_const * (np.pi * (angle - 180.0) / 180.0) ** 2
     u_low_reduced = u_low / RT
@@ -35,7 +34,6 @@ def is_collinear(positions, threshold=0.9):
         Boolean. True if any three consecutive atoms are collinear, False otherwise.
         Collinear is bad... very bad.
     """
-
     for i in range(len(positions) - 2):
         v1 = positions[i] - positions[i + 1]
         v2 = positions[i + 1] - positions[i + 2]

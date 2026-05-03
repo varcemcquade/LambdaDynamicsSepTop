@@ -144,10 +144,6 @@ def find_triplets(u, protein_atoms, l1_name, l2_name, l3_name, lig_segid):
         if not boresch_chk.check_angle(a1):
             continue
 
-        dih1 = np.degrees(calc_dihedrals(p1_coords, l1_coords, l2_coords, l3_coords))
-        if abs(dih1) >= 150.0:
-            continue
-
         if boresch_chk.is_collinear(np.array([p1_coords, l1_coords, l2_coords, l3_coords])):
             continue
 
@@ -165,10 +161,6 @@ def find_triplets(u, protein_atoms, l1_name, l2_name, l3_name, lig_segid):
             if not boresch_chk.check_angle(a2):
                 continue
 
-            dih2 = np.degrees(calc_dihedrals(p2_coords, p1_coords, l1_coords, l2_coords))
-            if abs(dih2) >= 150.0:
-                continue
-
             if boresch_chk.is_collinear(np.array([p2_coords, p1_coords, l1_coords, l2_coords])):
                 continue
 
@@ -184,10 +176,6 @@ def find_triplets(u, protein_atoms, l1_name, l2_name, l3_name, lig_segid):
                     continue
 
                 p3_coords = coords[p3]
-
-                dih3 = np.degrees(calc_dihedrals(p3_coords, p2_coords, p1_coords, l1_coords))
-                if abs(dih3) >= 150.0:
-                    continue
 
                 if boresch_chk.is_collinear(np.array([p3_coords, p2_coords, p1_coords, l1_coords])):
                     continue
@@ -254,23 +242,14 @@ def conditions_met(u, lig_names, prot_triplet, lig_segid):
         return False
     
     # Dihedral A (P3–P2–P1–L1)
-    dih3 = np.degrees(calc_dihedrals(p3_coords, p2_coords, p1_coords, l1_coords))
-    if abs(dih3) >= 150.0:
-        return False
     if boresch_chk.is_collinear(np.array([p3_coords, p2_coords, p1_coords, l1_coords])):
         return False
     
     # Dihedral B (P2–P1–L1–L2)
-    dih2 = np.degrees(calc_dihedrals(p2_coords, p1_coords, l1_coords, l2_coords))
-    if abs(dih2) >= 150.0:
-        return False
     if boresch_chk.is_collinear(np.array([p2_coords, p1_coords, l1_coords, l2_coords])):
         return False
 
     # Dihedral C (P1–L1–L2–L3)
-    dih1 = np.degrees(calc_dihedrals(p1_coords, l1_coords, l2_coords, l3_coords))
-    if abs(dih1) >= 150.0:
-        return False
     if boresch_chk.is_collinear(np.array([p1_coords, l1_coords, l2_coords, l3_coords])):
         return False
 
