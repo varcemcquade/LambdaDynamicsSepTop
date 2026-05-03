@@ -18,6 +18,7 @@ dist/
 *.log
 *.out
 *.tmp
+*.mol2
 
 # Ignore PyCharm settings
 .idea/

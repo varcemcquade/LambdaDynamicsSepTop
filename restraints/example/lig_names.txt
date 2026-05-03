@@ -1,0 +1,6 @@
+lig1
+lig2
+lig3
+lig4
+lig5
+lig6
