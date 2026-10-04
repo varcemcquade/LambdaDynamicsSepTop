@@ -79,7 +79,7 @@ def write_internal_restraints(dihedrals, lig_resid, outdir=".", dihk=5.0):
 
 def add_str_to_inp(inp, stream_dir="@builddir"):
     inp = Path(inp)
-    stream_line = f"stream {stream_dir}/internal_restraints@{{lig}}.str"
+    stream_line = f"stream {stream_dir}/internal_variables@{{lig}}.str"
     lines = inp.read_text().splitlines()
     
     if stream_line in lines:
