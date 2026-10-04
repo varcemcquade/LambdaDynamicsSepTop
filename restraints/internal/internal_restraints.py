@@ -1,79 +1,155 @@
-import numpy as np
-import MDAnalysis as mda
-from MDAnalysis.lib.distances import calc_dihedrals
-
-lig1 = "mol1"
-lig2 = "mol2"
-lig3 = "mol3"
-
-lig1_pdb = lig1 + ".pdb"
-lig2_pdb = lig2 + ".pdb"
-lig3_pdb = lig3 + ".pdb"
-
-u1 = mda.Universe(lig1_pdb)
-u2 = mda.Universe(lig2_pdb)
-u3 = mda.Universe(lig3_pdb)
-
-all_atom_lists = [
-    [["C3", "C4", "C7", "N1"], ["C4", "C7", "N1", "C8"], ["C7", "N1", "C8", "C12"]],
-    [["C3", "C4", "C7", "N1"], ["C4", "C7", "N1", "C8"], ["C7", "N1", "C8", "C12"]],
-    [["C3", "C4", "C7", "N1"], ["C4", "C7", "N1", "C8"], ["C7", "N1", "C8", "C12"]]
-]
+import argparse
+import shutil
+from pathlib import Path
+from rdkit import Chem
+from rdkit.Chem.rdMolTransforms import GetDihedralDeg
 
 
-def get_dihedral(u, atom_lists):
-    dihs = []
+def load(path):
+    if path.suffix.lower() == ".mol2":
+        mol = Chem.MolFromMol2File(path, sanitize=False, removeHs=False, cleanupSubstructures=False)
+        names = [a.GetProp("_TriposAtomName") for a in mol.GetAtoms()]
+    else:
+        mol = ChemMolFromPDBFile(str(path), sanitize=False, removeHs=False)
+        names = [a.GetPDBResidueInfo().GetName().strip() for a in mol.GetAtoms()]
+    
+    Chem.FastFindRings(mol)  # needed for IsInRing() when sanitize=False
+    
+    return mol, names
 
-    for names in atom_lists:
-        coords = []
-        for name in names:
-            coords.append(u.select_atoms(f"name {name}")[0].position)
-        dih = np.degrees(calc_dihedrals(coords[0], coords[1], coords[2], coords[3]))
-        dihs.append(dih)
-    return dihs
 
-def write_internal_restraints(dih1_names, dih2_names, dih3_names, dihs, lig_resid):
-    dihk = 5.0  # kcal/mol*rad**2
+def get_dihedrals(mol, rotatable_only=True):
+    out = []
+    for b in mol.GetBonds():
+        j, k = b.GetBeginAtom(), b.GetEndAtom()
+        if rotatable_only:
+            if b.IsInRing() or b.GetBondType() != Chem.BondType.SINGLE:
+                continue
+            starts = [n.GetIdx() for n in j.GetNeighbors() if n.GetIdx() != k.GetIdx() and n.GetAtomicNum() > 1]
+            ends = [n.GetIdx() for n in k.GetNeighbors() if n.GetIdx() != j.GetIdx() and n.GetAtomicNum() > 1]
+            if starts and ends:
+                out.append((starts[0], j.GetIdx(), k.GetIdx(), ends[0]))
+        else:
+            for i in (n.GetIdx() for n in j.GetNeighbors() if n.GetIdx() != k.GetIdx() and n.GetAtomicNum() > 1):
+                for l in (n.GetIdx() for n in k.GetNeighbors() if n.GetIdx() not in (j.GetIdx(), i) and n.GetAtomicNum() > 1):
+                    out.append((i, j.GetIdx(), k.GetIdx(), l))
 
-    file = open(f"internal_vars{lig_resid}.str", "w")
-    file.write(f"SET DIH1L1NAME = {dih1_names[0]}\n")
-    file.write(f"SET DIH1L2NAME = {dih1_names[1]}\n")
-    file.write(f"SET DIH1L3NAME = {dih1_names[2]}\n")
-    file.write(f"SET DIH1L4NAME = {dih1_names[3]}\n")
-    file.write(f"SET INTERNALPHI1 = {dihs[0]}\n\n")
+    return out
 
-    file.write(f"SET DIH2L1NAME = {dih2_names[0]}\n")
-    file.write(f"SET DIH2L2NAME = {dih2_names[1]}\n")
-    file.write(f"SET DIH2L3NAME = {dih2_names[2]}\n")
-    file.write(f"SET DIH2L4NAME = {dih2_names[3]}\n")
-    file.write(f"SET INTERNALPHI2 = {dihs[1]}\n\n")
 
-    file.write(f"SET DIH3L1NAME = {dih3_names[0]}\n")
-    file.write(f"SET DIH3L2NAME = {dih3_names[1]}\n")
-    file.write(f"SET DIH3L3NAME = {dih3_names[2]}\n")
-    file.write(f"SET DIH3L4NAME = {dih3_names[3]}\n")
-    file.write(f"SET INTERNALPHI3 = {dihs[2]}\n\n")
+# CHARMM dihedral restraint; {n} is the dihedral number, {force}/{block} pick the lambda-scaled or unscaled copy
+GEO_DIHEDRAL = """\
+GEO sphere RCM dihedral -
+   harmonic symmetric force {force} tref @internalphi{i} dtoff 0.0{block} -
+   select atom @ligsegid @lig @dih{i}l1name end -
+   select atom @ligsegid @lig @dih{i}l2name end -
+   select atom @ligsegid @lig @dih{i}l3name end -
+   select atom @ligsegid @lig @dih{i}l4name end
+"""
 
-    file.write(f"SET INTERNALPHIK = {dihk}\n")
-    file.close()
+
+def write_internal_restraints(dihedrals, lig_resid, outdir=".", dihk=5.0):
+    """
+    dihedrals: list of ((name1, name2, name3, name4), phi)
+    dihk in kcal/(mol*rad**2)
+    """
+    path = Path(outdir) / f"internal_variables{lig_resid}.str"
+
+    with open(path, "w") as f:
+        f.write(f"!! Internal dihedral restraints for ligand {lig_resid}\n\n")
+
+        # write variables
+        for i, (names, phi) in enumerate(dihedrals, 1):
+            for j, name in enumerate(names, 1):
+                f.write(f"SET DIH{i}L{j}NAME = {name}\n")
+
+            f.write(f"SET INTERNALPHI{i} = {phi:.3f}\n\n")
+        f.write(f"SET NDIH = {len(dihedrals)}\n")
+        f.write(f"SET INTERNALPHIK = {dihk}\n")
+
+        # write mmfp restraints
+        f.write("MMFP\n\n")
+        for i in range(1, len(dihedrals) + 1):
+            f.write(GEO_DIHEDRAL.format(i=i, force="-@internalphik", block=" block @ligblock") + "\n")
+            f.write(GEO_DIHEDRAL.format(i=i, force="@internalphik", block="") + "\n")
+        f.write("END\n\n")
+    
     return None
 
-lig1dih1_names = all_atom_lists[0][0]
-lig1dih2_names = all_atom_lists[0][1]
-lig1dih3_names = all_atom_lists[0][2]
 
-lig2dih1_names = all_atom_lists[1][0]
-lig2dih2_names = all_atom_lists[1][1]
-lig2dih3_names = all_atom_lists[1][2]
+def add_str_to_inp(inp, stream_dir="@builddir"):
+    inp = Path(inp)
+    stream_line = f"stream {stream_dir}/internal_restraints@{{lig}}.str"
+    lines = inp.read_text().splitlines()
+    
+    if stream_line in lines:
+        return None
 
-lig3dih1_names = all_atom_lists[2][0]
-lig3dih2_names = all_atom_lists[2][1]
-lig3dih3_names = all_atom_lists[2][2]
+    insert_at = None
+    seen_boresch = False
 
-lig1dihs = get_dihedral(u1, all_atom_lists[0])
-lig2dihs = get_dihedral(u2, all_atom_lists[0])
-lig3dihs = get_dihedral(u3, all_atom_lists[0])
+    for i, line in enumerate(lines):
+        if "boresch restraints" in line.lower():
+            seen_boresch = True
+        elif seen_boresch and line.strip().lower() == "incr lig":
+            insert_at = i
+            break
 
-write_internal_restraints(lig1dih1_names, lig1dih2_names, lig1dih3_names, lig1dihs, 1)
-write_internal_restraints(lig2dih1_names, lig2dih2_names, lig2dih3_names, lig2dihs, 2)
-write_internal_restraints(lig3dih1_names, lig3dih2_names, lig3dih3_names, lig3dihs, 3)
+    if insert_at is None:
+        raise ValueError(f"no 'incr lig' line found after the Boresch block in {inp}.")
+
+    # backup .inp
+    shutil.copy(inp, inp.with_name(inp.name + ".bak"))
+    lines[insert_at:insert_at] = [stream_line, ""]
+    inp.write_text("\n".join(lines) + "\n")
+    
+    return None
+
+
+def process_ligand(path, lig_resid, outdir, rotatable_only, dihk):
+    path = Path(path)
+    mol, names = load(path)
+    conf = mol.GetConformer()
+    all_dihedral_indices = get_dihedrals(mol, rotatable_only)
+
+    dihedrals = []
+    for dihedral_indicies in all_dihedral_indices:
+        dihedrals.append((tuple(names[idx] for idx in dihedral_indicies), GetDihedralDeg(conf, *dihedral_indicies)))
+
+    write_internal_restraints(dihedrals, lig_resid, outdir, dihk)
+    
+    return lig_resid, path.name, len(dihedrals)
+
+
+LIG_NAMES = "lig_names.txt"
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("lig_names_file", default="lig_names.txt", help="Specify text file listing all ligand names.")
+    parser.add_argument("--ligdir", default=".", help="directory containing {name}.mol2 (or {name}.pdb)")
+    parser.add_argument("--outdir", default=".", help="where to write internal_restraints{i}.str")
+    parser.add_argument("--inp", help="CHARMM .inp to add the stream line to")
+    parser.add_argument("--stream-dir", default="@builddir", help="--outdir as CHARMM should see it (default: @builddir)")
+    parser.add_argument("--rotatable", action="store_true", help="one torsion per rotatable bond instead of all")
+    parser.add_argument("--k", type=float, default=5.0, help="force constant, kcal/mol*rad**2")
+    args = parser.parse_args()
+
+    with open(args.lig_names_file) as f:
+        lig_names = [line.strip() for line in f if line.strip()]
+
+    print(f"Found {len(lig_names)} ligand(s): {lig_names}")
+
+    for lig_resid, name in enumerate(lig_names, 1):
+        path = Path(args.ligdir) / f"{name}.mol2"
+        if not path.exists():
+            path = path.with_suffix(".pdb")
+
+        _, file_name, ndih = process_ligand(path, lig_resid, args.outdir, args.rotatable, args.k)
+        print(f"lig {lig_resid}: {file_name} -> {ndih} dihedrals")
+
+    if args.inp:
+        add_str_to_inp(args.inp, args.stream_dir)
+
+
+if __name__ == "__main__":
+    main()
