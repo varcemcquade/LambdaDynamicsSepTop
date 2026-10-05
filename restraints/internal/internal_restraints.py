@@ -10,7 +10,7 @@ def load(path):
         mol = Chem.MolFromMol2File(path, sanitize=False, removeHs=False, cleanupSubstructures=False)
         names = [a.GetProp("_TriposAtomName") for a in mol.GetAtoms()]
     else:
-        mol = ChemMolFromPDBFile(str(path), sanitize=False, removeHs=False)
+        mol = Chem.MolFromPDBFile(str(path), sanitize=False, removeHs=False)
         names = [a.GetPDBResidueInfo().GetName().strip() for a in mol.GetAtoms()]
     
     Chem.FastFindRings(mol)  # needed for IsInRing() when sanitize=False
