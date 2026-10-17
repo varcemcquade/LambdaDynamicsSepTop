@@ -96,7 +96,7 @@ def select_protein_atoms(u, l1_coords,
 
     core_resids = sorted(set(core_resids))
     resids_str = " ".join(str(r) for r in core_resids)
-    candidate_atoms = u.select_atoms(f"protein and (name CA CB) and (resid {resids_str})")
+    candidate_atoms = u.select_atoms(f"protein and backbone and (resid {resids_str})")
     
     if candidate_atoms.n_atoms == 0:
         return []
