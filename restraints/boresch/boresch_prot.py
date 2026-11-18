@@ -9,14 +9,17 @@ def _dist(a, b, box):
     """
     Minimum-image distance between two atoms.
 
-    :param a: Coordinates of atom a, shape (3,).
-    :param b: Coordinates of atom b, shape (3,).
-    :param box: MDAnalysis box dimensions array.
-    :return: Float distance in Angstroms.
+    Parameters:
+        a (np.ndarray(shape=(3,), dtype=np.float32)): coordinates of atom a
+        b (np.ndarray(shape=(3,), dtype=np.float32)): coordinates of atom b
+        box (np.ndarray(shape=(6,), dtype=np.float32)): contents of u.dimensions
+    
+    Returns:
+        (float): distancei in Angstroms
     """
     return float(distance_array(a.reshape(1, 3), b.reshape(1, 3), box=box)[0, 0])
 
-def select_protein_atoms(u, l1_coords,
+def select_protein_atoms(u, l1_coords, prot_segid,
                          skip_start=15, skip_end=15,
                          min_len_H=8, min_len_E=5,
                          trim_H=3, trim_E=2):
@@ -29,26 +32,41 @@ def select_protein_atoms(u, l1_coords,
            near chain termini and not near secondary-structure ends.
         3. Distance from L1 is 10 Å < d < 30 Å.
 
-    :param u:            MDAnalysis Universe (protein-ligand complex). Must have u.dimensions set before calling.
-    :param l1_coords:    Coordinates of L1 atom, shape (1, 3) or (3,).
-    :param box_size:     Cubic box side length in Angstroms.
-    :param box_angle:    Box angle in degrees.
-    :param skip_start:   Skip residues within this many positions of the chain N-terminus.
-    :param skip_end:     Skip residues within this many positions of the chain C-terminus.
-    :param min_len_H:    Minimum run length for a helix to be used.
-    :param min_len_E:    Minimum run length for a beta sheet to be used.
-    :param trim_H:       Trim this many residues from each end of a helix run.
-    :param trim_E:       Trim this many residues from each end of a sheet run.
-    :return:             List of 0-based global atom indices passing all filters.
+    Parameters:
+        u (mda.Universe): complex universe
+        l1_coords (np.ndarray(shape=(3,), dtype=np.float32)):
+        prot_segid (str): protein SEGID
+        skip_start (int): Skip residues within this many positions of the chain N-terminus
+        skip_end (int): Skip residues within this many positions of the chain C-terminus.
+        min_len_H (int): Minimum run length for a helix to be used.
+        min_len_E (int): Minimum run length for a beta sheet to be used.
+        trim_H (int): Trim this many residues from each end of a helix run.
+        trim_E (int): Trim this many residues from each end of a sheet run.
+
+    Returns:
+        (list[int]): 3 element list containing three 0-based indices that refer to atoms in the complex
     """
+    
+    # "guess" element information from ligand universe if not filled
     if not hasattr(u.atoms, "elements"):
         names = [str(n) for n in u.atoms.names]
         elems = [guessers.guess_atom_element(n) for n in names]
         u.add_TopologyAttr("elements", elems)
 
-    l1_coords = np.asarray(l1_coords).reshape(1, 3)
 
-    sec_data = dssp.DSSP(u).run()
+    # prep protein selection for secondary structure prediction
+    prot_u = u.select_atoms(f"segid {prot_segid}")
+    # prot_u = prot_u.residues[1:-1].atoms
+
+    n_N  = prot_u.select_atoms("name N").n_atoms
+    n_CA = prot_u.select_atoms("name CA").n_atoms
+    n_C  = prot_u.select_atoms("name C").n_atoms
+    n_O  = prot_u.select_atoms("name O").n_atoms
+
+    print(f"Protein atoms: {prot_u.n_atoms}")
+    print(f"Backbone counts: N={n_N}, CA={n_CA}, C={n_C}, O={n_O}")
+    
+    sec_data = dssp.DSSP(prot_u).run()
 
     # results.resids is 1-D (n_residues,); results.dssp is (n_frames, n_residues)
     dssp_resids = sec_data.results.resids
@@ -58,6 +76,7 @@ def select_protein_atoms(u, l1_coords,
     sorted_resids = sorted(sec_structs_by_resid)
     n_res = len(sorted_resids)
 
+    # determine number of alpha helices and beta sheets
     num_H = sum(1 for s in sec_structs_by_resid.values() if s == "H")
     num_E = sum(1 for s in sec_structs_by_resid.values() if s == "E")
 
@@ -101,6 +120,7 @@ def select_protein_atoms(u, l1_coords,
     if candidate_atoms.n_atoms == 0:
         return []
 
+    l1_coords = np.asarray(l1_coords).reshape(1, 3)
     dists = distance_array(candidate_atoms.positions, l1_coords, box=u.dimensions)[:, 0]
     protein_atoms = [int(candidate_atoms.indices[i]) for i, d in enumerate(dists) if 10.0 < d < 30.0]
     
@@ -114,18 +134,21 @@ def find_triplets(u, protein_atoms, l1_name, l2_name, l3_name, lig_segid):
     the six-atom restrained set {L1, L2, L3, P1, P2, P3} satisfies:
         - Angles not within 10 kT of 0° or 180°.
         - No three consecutive atoms are collinear (dot-product threshold 0.9).
-        - Dihedrals not within ±150° of ±180°.
+        - (UNIMPLEMENTED) Dihedrals not within ±150° of ±180°.
         - P2/P3 distances between 5 Å and half the box.
 
     Ligand atoms are located by name, so the function works correctly
     even when atom numbers differ across complexes.
 
-    :param u: MDAnalysis Universe with u.dimensions set.
-    :param protein_atoms: List of 0-based protein atom indices (candidates).
-    :param l1_name, l2_name, l3_name: Ligand atom names.
-    :param lig_segid: Ligand segment ID.
-    :param box_size: Cubic box side length in Angstroms.
-    :return: List of [p1, p2, p3] triplets with *0-based* indices.
+    Parameters:
+        u (mda.Universe): complex universe
+        protein_atoms (list[int]): List of 0-based protein atom indices (candidates).
+        l1_name, l2_name, l3_name (list[tuple[int, str]]): Ligand atom names.
+        lig_segid (str): Ligand segment ID.
+        box_size (float): Cubic box side length in Angstroms.
+    
+    Returns:
+        all_triplets (tuple[str]): List of [p1, p2, p3] triplets with *0-based* indices.
     """
     coords = u.atoms.positions.copy()
 
@@ -198,27 +221,43 @@ def find_triplets(u, protein_atoms, l1_name, l2_name, l3_name, lig_segid):
 
     return all_triplets
 
-def conditions_met(u, lig_names, prot_triplet, lig_segid):
+def check_ligand_order(u, lig_names, prot_triplet, lig_segid):
     """
-    Test whether a (P1, P2, P3) triplet found for the reference complex
-    still satisfies Boresch geometry conditions in a different complex.
-
-    :param u: MDAnalysis Universe of the target complex (u.dimensions should already be set).
-    :param lig_names: Tuple/list (l1_name, l2_name, l3_name).
-    :param prot_triplet: [p1, p2, p3] with *0-based* protein atom indices.
-    :param lig_segid: Ligand segment ID.
-    :param box_size: Cubic box side length in Angstroms.
-    :return: True if all conditions are satisfied.
+    Test whether one complete ligand ordering (L1, L2, L3) is satisfies 
+    Boresch geometry conditions in a different complex for a specified
+    protein triplet (P1, P2, P3).
+    
+    The ligand ordering must be used consistently for:
+        angle B:     P1-L1-L2
+        dihedral B:  P2-P1-L1-L2
+        dihedral C:  P1-L1-L2-L3
+    
+    Parameters:
+        u (MDA.universe): MDAnalysis Universe of the target complex (u.dimensions should already be set).
+        lig_names (tuple[str]): Tuple/list (l1_name, l2_name, l3_name)
+        prot_triplet (list[int]): [p1, p2, p3] with *0-based* protein atom indices.
+        lig_segid (str): Ligand segment ID.
+        box_size (int): Cubic box side length in Angstroms.
+    
+    Returns:
+        (bool): True if all conditions are satisfied.
     """
     coords = u.atoms.positions.copy()
 
     l1_name, l2_name, l3_name = lig_names
+    p1, p2, p3 = prot_triplet
 
-    p1, p2, p3 = prot_triplet[0], prot_triplet[1], prot_triplet[2]
+    l1_sel = u.select_atoms(f"segid {lig_segid} and name {l1_name}")
+    l2_sel = u.select_atoms(f"segid {lig_segid} and name {l2_name}")
+    l3_sel = u.select_atoms(f"segid {lig_segid} and name {l3_name}")
 
-    l1_coords = u.select_atoms(f"segid {lig_segid} and name {l1_name}")[0].position
-    l2_coords = u.select_atoms(f"segid {lig_segid} and name {l2_name}")[0].position
-    l3_coords = u.select_atoms(f"segid {lig_segid} and name {l3_name}")[0].position
+    if l1_sel.n_atoms != 1 or l2_sel.n_atoms != 1 or l3_sel.n_atoms != 1:
+        return False
+
+    l1_coords = l1_sel[0].position
+    l2_coords = l2_sel[0].position
+    l3_coords = l3_sel[0].position
+
     p1_coords = coords[p1]
     p2_coords = coords[p2]
     p3_coords = coords[p3]
@@ -226,40 +265,72 @@ def conditions_met(u, lig_names, prot_triplet, lig_segid):
     min_distance = 5.0
     max_distance = (u.dimensions[0] / 2.0) if u.dimensions[0] > 0 else 20.0
 
-    # P1-L1 distance
+    # distance restraint: P1-L1
     dp1l1 = _dist(p1_coords, l1_coords, u.dimensions)
     if not (10.0 < dp1l1 < 30.0):
         return False
 
-    # Angle A (P2–P1–L1)
-    a2 = np.degrees(calc_angles(p2_coords, p1_coords, l1_coords))
-    if not boresch_chk.check_angle(a2):
-        return False
-    
-    # Angle B (P1–L1–L2)
-    a1 = np.degrees(calc_angles(p1_coords, l1_coords, l2_coords))
-    if not boresch_chk.check_angle(a1):
-        return False
-    
-    # Dihedral A (P3–P2–P1–L1)
-    if boresch_chk.is_collinear(np.array([p3_coords, p2_coords, p1_coords, l1_coords])):
-        return False
-    
-    # Dihedral B (P2–P1–L1–L2)
-    if boresch_chk.is_collinear(np.array([p2_coords, p1_coords, l1_coords, l2_coords])):
+    # angle A: P2-P1-L1
+    theta_a = float(np.degrees(calc_angles(p2_coords, p1_coords, l1_coords)))
+    if not boresch_chk.check_angle(theta_a):
         return False
 
-    # Dihedral C (P1–L1–L2–L3)
-    if boresch_chk.is_collinear(np.array([p1_coords, l1_coords, l2_coords, l3_coords])):
+    # angle B: P1-L1-L2
+    theta_b = float(np.degrees(calc_angles(p1_coords, l1_coords, l2_coords)))
+    if not boresch_chk.check_angle(theta_b):
         return False
 
+    # # dihedral A: P3-P2-P1-L1
+    # phi_a = float(np.degrees(
+    #     calc_dihedrals(p3_coords, p2_coords, p1_coords, l1_coords)
+    # ))
+
+    # # dihedral B: P2-P1-L1-L2
+    # phi_b = float(np.degrees(
+    #     calc_dihedrals(p2_coords, p1_coords, l1_coords, l2_coords)
+    # ))
+
+    # # dihedral C: P1-L1-L2-L3
+    # phi_c = float(np.degrees(
+    #     calc_dihedrals(p1_coords, l1_coords, l2_coords, l3_coords)
+    # ))
+
+    # if not (
+    #     boresch_chk.check_dihedral(phi_a) and
+    #     boresch_chk.check_dihedral(phi_b) and
+    #     boresch_chk.check_dihedral(phi_c)
+    # ):
+    #     return False
+
+    # test all relevant sequential triplets for near-collinearity.
+    if boresch_chk.is_collinear(
+        np.array([p3_coords, p2_coords, p1_coords, l1_coords])
+    ):
+        return False
+
+    if boresch_chk.is_collinear(
+        np.array([p2_coords, p1_coords, l1_coords, l2_coords])
+    ):
+        return False
+
+    if boresch_chk.is_collinear(
+        np.array([p1_coords, l1_coords, l2_coords, l3_coords])
+    ):
+        return False
+
+    # protein-anchor and P3 separation checks.
     dp1p3 = _dist(p1_coords, p3_coords, u.dimensions)
     dp2p3 = _dist(p2_coords, p3_coords, u.dimensions)
     dl1p3 = _dist(l1_coords, p3_coords, u.dimensions)
 
-    if not (min_distance < dp1p3 < max_distance and
-            min_distance < dp2p3 < max_distance and
-            min_distance < dl1p3 < max_distance):
+    if not (
+        min_distance < dp1p3 < max_distance and
+        min_distance < dp2p3 < max_distance and
+        min_distance < dl1p3 < max_distance
+    ):
         return False
 
     return True
+
+def conditions_met(u, lig_names, prot_triplet, lig_segid):
+    return check_ligand_order(u, lig_names, prot_triplet, lig_segid)
