@@ -9,10 +9,12 @@ def check_angle(angle):
     """
     Checks if a given angle is too close (<10 kT) to 0 or 180 degrees
     given harmonic restraint angle potential.
-    :param angle:
-        Float
-    :return:
-        Boolean. True is valid, False is invalid.
+    
+    Parameters:
+        angle (float): Angle in degrees.
+    
+    Returns:
+        (bool): True if the angle is valid, otherwise False.
     """
     u_low = 0.5 * force_const * (np.pi * (angle - 0.0) / 180.0) ** 2
     u_high = 0.5 * force_const * (np.pi * (angle - 180.0) / 180.0) ** 2
@@ -22,16 +24,29 @@ def check_angle(angle):
         return False
     return True
 
+# def check_dihedral(dihedral, threshold=150.0):
+#     """
+#     Return True if a dihedral is sufficiently far from +/-180 degrees.
+
+#     Parameters:
+#         dihedral (float): Dihedral angle in degrees between -180 and 180
+#         threshold (float): Absolute-value cutoff. The default rejects |phi| >= 150 degrees.
+    
+#     Returns:
+#         (bool): Dihedral is stable if below threshold
+#     """
+#     return abs(dihedral) < threshold
+
 def is_collinear(positions, threshold=0.9):
     """
     Checks if atoms are collinear.
-    :param positions:
-        Array of coordinates sized n_atoms x 3
-    :param threshold:
-        Threshold for what constitutes collinear
-        For threshold=0.9, ~26 degrees < angle < ~154 degrees
-    :return:
-        Boolean. True if any three consecutive atoms are collinear, False otherwise.
+    
+    Parameters:
+        positions (np.ndarray(shape=(3,), dtype=np.float32): Array of coordinates sized n_atoms x 3
+        threshold (float): Threshold for what constitutes collinear. For threshold=0.9, ~26 degrees < angle < ~154 degrees
+    
+    Returns:
+        (bool): True if any three consecutive atoms are collinear, False otherwise.
         Collinear is bad... very bad.
     """
     for i in range(len(positions) - 2):
